@@ -1,244 +1,364 @@
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({
+	Name = "VOOR V2 HUB",
+	HidePremium = false,
+	SaveConfig = true,
+	ConfigFolder = "OrionTest",
+	IntroEnabled = false,  -- Enable intro animation
+	IntroText = "VOOR Scripts",  -- Set custom intro text
+	Icon = "rbxassetid://132351513425524",  -- Custom icon (change if needed)
+	IntroIcon = "rbxassetid://132351513425524"  -- Custom icon for the intro (optional)
+})
 
--- Create ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+local PlayerTab = Window:MakeTab({
+	Name = "MAIN V2",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
 
--- Create Loading Screen
-local LoadingScreen = Instance.new("Frame")
-LoadingScreen.Size = UDim2.new(1, 0, 1, 0)
-LoadingScreen.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-LoadingScreen.Parent = ScreenGui
+local Section = PlayerTab:AddSection({
+	Name = "Movement"
+})
 
-local LoadingText = Instance.new("TextLabel")
-LoadingText.Size = UDim2.new(1, 0, 0.1, 0)
-LoadingText.Position = UDim2.new(0, 0, 0.45, 0)
-LoadingText.BackgroundTransparency = 1
-LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoadingText.Text = "Made by Voorlove Music. Subscribe to my channel!"
-LoadingText.Font = Enum.Font.GothamBold
-LoadingText.TextSize = 20
-LoadingText.Parent = LoadingScreen
+PlayerTab:AddSlider({
+	Name = "Walkspeed",
+	Min = 16,
+	Max = 500,
+	Default = 16,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 1,
+	ValueName = "Walkspeed",
+	Callback = function(Value)
+		game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+	end    
+})
 
--- Tween for loading text
-local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local tweenIn = TweenService:Create(LoadingText, tweenInfo, {TextTransparency = 0})
-local tweenOut = TweenService:Create(LoadingText, tweenInfo, {TextTransparency = 1})
+PlayerTab:AddSlider({
+	Name = "Jump Height",
+	Min = 16,
+	Max = 500,
+	Default = 5,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 1,
+	ValueName = "Jump Height",
+	Callback = function(Value)
+		game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+	end    
+})
 
--- Create Frame for the main GUI (smaller size)
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0.3, 0, 0.3, 0) -- Adjusted size
-Frame.Position = UDim2.new(0.35, 0, 0.35, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Frame.Visible = false  -- Start hidden
-Frame.Parent = ScreenGui
+-- Add the "Keep Enlighten" button
+PlayerTab:AddButton({
+	Name = "Keep Enlighten",
+	Callback = function()
+		local player = game.Players.LocalPlayer
 
--- Create TextBox for amount to steal
-local amountTextBox = Instance.new("TextBox")
-amountTextBox.Size = UDim2.new(0.8, 0, 0.2, 0)
-amountTextBox.Position = UDim2.new(0.1, 0, 0.1, 0)
-amountTextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-amountTextBox.PlaceholderText = "Amount to steal"
-amountTextBox.Font = Enum.Font.GothamBold
-amountTextBox.TextSize = 16
-amountTextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-amountTextBox.Parent = Frame
+		-- Detect when specific messages are sent in chat
+		player.Chatted:Connect(function(msg)
+			msg = msg:lower()  -- Case-insensitive
+			if msg == "oof" or msg == ";oof" or msg == "oof all" or msg == ";oof all" then
+				-- Equip the first tool
+				local tool = player.Backpack:FindFirstChildOfClass("Tool")
+				if tool then
+					tool.Parent = player.Character
+				end
 
--- Create Button to steal time
-local stealButton = Instance.new("TextButton")
-stealButton.Size = UDim2.new(0.8, 0, 0.2, 0)
-stealButton.Position = UDim2.new(0.1, 0, 0.35, 0)
-stealButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-stealButton.Text = "Steal from Admin"
-stealButton.Font = Enum.Font.GothamBold
-stealButton.TextSize = 16
-stealButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-stealButton.Parent = Frame
+				-- Say the command ";r6 fast" quickly
+				game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(";r6 fast", "All")
+			end
+		end)
+	end
+})
 
--- Create Button to add Infinity symbol
-local addInfButton = Instance.new("TextButton")
-addInfButton.Size = UDim2.new(0.8, 0, 0.2, 0)
-addInfButton.Position = UDim2.new(0.1, 0, 0.65, 0) -- Position below the steal button
-addInfButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green color
-addInfButton.Text = "Add Infinity"
-addInfButton.Font = Enum.Font.GothamBold
-addInfButton.TextSize = 16
-addInfButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-addInfButton.Parent = Frame
+-- Fly functionality
+local flyActive = false
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local flySpeed = 50
 
--- Create Close Button
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0.1, 0, 0.1, 0)
-closeButton.Position = UDim2.new(0.9, 0, 0, 0)
-closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-closeButton.Text = "X"
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 16
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.Parent = Frame
+local function toggleFly()
+	flyActive = not flyActive
 
--- Create Static Rainbow TextLabel for V1
-local rainbowLabel = Instance.new("TextLabel")
-rainbowLabel.Size = UDim2.new(0.8, 0, 0.1, 0)
-rainbowLabel.Position = UDim2.new(0.1, 0, 0.85, 0) -- Position under the Add Infinity button
-rainbowLabel.BackgroundTransparency = 1
-rainbowLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red color for "V1"
-rainbowLabel.Text = "V1"
-rainbowLabel.Font = Enum.Font.GothamBold
-rainbowLabel.TextSize = 30
-rainbowLabel.Parent = Frame
+	if flyActive then
+		local bodyGyro = Instance.new("BodyGyro", character.HumanoidRootPart)
+		bodyGyro.P = 9e4
+		bodyGyro.MaxTorque = Vector3.new(9e4, 9e4, 9e4)
 
--- Create TextLabel to display stolen amount
-local stolenAmountLabel = Instance.new("TextLabel")
-stolenAmountLabel.Size = UDim2.new(0.8, 0, 0.1, 0)
-stolenAmountLabel.Position = UDim2.new(0.1, 0, 0.5, 0)
-stolenAmountLabel.BackgroundTransparency = 1
-stolenAmountLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow color for displayed amount
-stolenAmountLabel.Text = "Stolen Amount: 0"
-stolenAmountLabel.Font = Enum.Font.GothamBold
-stolenAmountLabel.TextSize = 20
-stolenAmountLabel.Parent = Frame
+		local bodyVelocity = Instance.new("BodyVelocity", character.HumanoidRootPart)
+		bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		bodyVelocity.MaxForce = Vector3.new(9e4, 9e4, 9e4)
 
--- Create drag functionality
-local dragging
-local dragInput
-local dragStart
-local startPos
+		while flyActive do
+			wait()
+			bodyGyro.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position)
+			bodyVelocity.Velocity = (workspace.CurrentCamera.CFrame.LookVector * flySpeed)
+		end
 
-Frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = Frame.Position
-    end
-end)
-
-Frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-game:GetService("RunService").RenderStepped:Connect(function()
-    if dragging then
-        local delta = dragInput.Position - dragStart
-        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Function to check if a player is on the "Admin" team
-local function isPlayerOnAdminTeam(player)
-    return player.Team and player.Team.Name == "Admin"
+		bodyGyro:Destroy()
+		bodyVelocity:Destroy()
+	else
+		-- Disable flying by resetting velocity
+		humanoid.PlatformStand = false
+	end
 end
 
--- Function to steal time from players on the "Admin" team
-local function stealTimeFromAdminPlayers(amount)
-    local amountToSteal = tonumber(amount) -- Convert the input to a number
-    if not amountToSteal then
-        print("Please enter a valid number!")
-        return
-    end
+-- Button to toggle Fly
+PlayerTab:AddButton({
+	Name = "Toggle Fly",
+	Callback = function()
+		toggleFly()
+	end
+})
 
-    local totalStolen = 0 -- Initialize total stolen amount
+-- Add a new "Troll" tab
+local TrollTab = Window:MakeTab({
+	Name = "Troll",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if isPlayerOnAdminTeam(player) then
-            local timeStat = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Time") -- Assuming there's a "Time" stat
-            if timeStat then
-                if timeStat.Value >= amountToSteal then
-                    -- Steal time
-                    timeStat.Value = timeStat.Value - amountToSteal
-                    totalStolen = totalStolen + amountToSteal -- Update total stolen
-                    print("Successfully stole " .. amountToSteal .. " time from " .. player.Name)
+-- Button to activate Admin Abuse
+local abuseActive = false
 
-                    -- Add stolen time to the local player's time
-                    local localPlayerStat = Players.LocalPlayer:FindFirstChild("leaderstats") and Players.LocalPlayer.leaderstats:FindFirstChild("Time")
-                    if localPlayerStat then
-                        localPlayerStat.Value = localPlayerStat.Value + amountToSteal
-                    end
-                else
-                    print(player.Name .. " doesn't have enough time to steal!")
-                end
-            else
-                print(player.Name .. " does not have a Time stat!")
-            end
-        end
-    end
+local function adminAbuse()
+	while abuseActive do
+		-- Equip the first tool
+		local tool = game.Players.LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+		if tool then
+			tool.Parent = game.Players.LocalPlayer.Character
+		end
 
-    -- Update the label with the total stolen amount
-    stolenAmountLabel.Text = "Stolen Amount: " .. totalStolen
+		-- Admin abuse commands
+		game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(";fling others", "All")
+		wait(1)
+		game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(";oof others", "All")
+		wait(1)
+		game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(";freeze others", "All")
+		wait(1)
+		game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(";jail others", "All")
+		wait(1)
+		game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(";punish others", "All")
+		wait(1)
+	end
 end
 
--- Connect button click to the stealing function
-stealButton.MouseButton1Down:Connect(function()
-    local amount = amountTextBox.Text
-    while stealButton.MouseButton1Down do
-        stealTimeFromAdminPlayers(amount)
-        wait(0.1) -- Speed of clicks
-    end
-end)
+-- Button to activate Admin Abuse
+TrollTab:AddButton({
+	Name = "Admin Abuse",
+	Callback = function()
+		if not abuseActive then
+			abuseActive = true
+			spawn(adminAbuse)
+		end
+	end
+})
 
--- Connect button click to add infinity
-addInfButton.MouseButton1Down:Connect(function()
-    local localPlayerStat = Players.LocalPlayer:FindFirstChild("leaderstats") and Players.LocalPlayer.leaderstats:FindFirstChild("Time")
-    if localPlayerStat then
-        localPlayerStat.Value = "N/A" -- Set to N/A
-    end
-end)
+-- Button to stop Admin Abuse
+TrollTab:AddButton({
+	Name = "Unactivate Admin Abuse",
+	Callback = function()
+		abuseActive = false
+	end
+})
 
--- Connect the close button to hide the GUI
-closeButton.MouseButton1Down:Connect(function()
-    Frame.Visible = false
-    LoadingScreen.Visible = false
-end)
+-- Spam feature
+TrollTab:AddButton({
+	Name = "SPAM Y̵O̶U̴ ̶S̶H̸O̸U̸L̷D̸ ̵H̴A̶V̶E̵ ̷L̴I̸S̵T̸E̸N̵E̸D̸ ̸T̷O̸ ̶M̷E̷",
+	Callback = function()
+		while true do
+			wait(1)  -- Adjust the spam interval if needed
+			game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Y̵O̶U̴ ̶S̶H̸O̸U̸L̷D̸ ̵H̴A̶V̶E̵ ̷L̴I̸S̵T̸E̸N̵E̸D̸ ̸T̷O̸ ̶M̷E̷", "All")
+		end
+	end
+})
 
--- Show the loading screen and tween the text
-LoadingScreen.Visible = true
-tweenIn:Play()
-wait(1)
-tweenOut:Play()
-LoadingScreen.Visible = false
-Frame.Visible = true
+-- Add a new "Steal" tab
+local StealTab = Window:MakeTab({
+	Name = "Steal",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
 
--- Create BillboardGui to show time above player's head
-local function createBillboardGui(player)
-    local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Adornee = player.Character:WaitForChild("Head")
-    billboardGui.Size = UDim2.new(0, 100, 0, 50)
-    billboardGui.StudsOffset = Vector3.new(0, 2, 0)
+-- Button to steal "The Arkenstone"
+StealTab:AddButton({
+	Name = "Steal Enlighten",
+	Callback = function()
+		local player = game.Players.LocalPlayer
 
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow color for the text
-    textLabel.Text = "Time: " .. (player.leaderstats.Time and player.leaderstats.Time.Value or "0")
-    textLabel.Font = Enum.Font.GothamBold
-    textLabel.TextSize = 14
-    textLabel.Parent = billboardGui
+		for _, target in ipairs(game.Players:GetPlayers()) do
+			if target ~= player then
+				local tool = target.Backpack:FindFirstChild("The Arkenstone")
+				if tool then
+					-- Cut the player's arm that holds the tool
+					local character = target.Character
+					if character then
+						local arm = character:FindFirstChild("Right Arm") or character:FindFirstChild("Left Arm")
+						if arm then
+							arm:Destroy()  -- Simulating cutting the arm
+						end
+						-- Steal the tool
+						tool.Parent = player.Backpack
+						break  -- Exit after stealing one tool
+					end
+				end
+			end
+		end
+	end
+})
 
-    billboardGui.Parent = workspace
+-- Add "Steal Admin Time" section
+local StealAdminTab = Window:MakeTab({
+	Name = "Steal Admin Time",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
 
-    -- Update the BillboardGui when the player's time changes
-    player.leaderstats.Time.Changed:Connect(function()
-        textLabel.Text = "Time: " .. player.leaderstats.Time.Value
-    end)
-end
+-- Button to show chat message for stealing admin time
+StealAdminTab:AddButton({
+	Name = "Steal Admin Time",
+	Callback = function()
+		local message = "Admin time stealer (If it doesn't work then Chosen One updated :/)"
+		game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+	end
+})
 
--- Create BillboardGui for the local player
-createBillboardGui(Players.LocalPlayer)
+-- Add "AFK" section
+local AFKTab = Window:MakeTab({
+	Name = "AFK",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
 
--- Create BillboardGui for other players
-Players.PlayerAdded:Connect(createBillboardGui)
-for _, player in ipairs(Players:GetPlayers()) do
-    if player ~= Players.LocalPlayer then
-        createBillboardGui(player)
-    end
-end
+-- Button for AFK Farming
+AFKTab:AddButton({
+	Name = "AFK Farm",
+	Callback = function()
+		-- This can be a placeholder to indicate AFK farming.
+		local message = "AFK Farming Active! You won't be kicked for being AFK."
+		game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+	end
+})
+
+-- Button for Manage Admin Server
+AFKTab:AddButton({
+	Name = "Manage Admin Server",
+	Callback = function()
+		local message = "Managing admin server, activating features."
+		game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+	end
+})
+
+-- Add Escape section
+local EscapeTab = Window:MakeTab({
+	Name = "Escape",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+-- Button to escape from jail
+EscapeTab:AddButton({
+	Name = "Escape from Jail",
+	Callback = function()
+		local player = game.Players.LocalPlayer
+		local character = player.Character or player.CharacterAdded:Wait()
+		if character then
+			-- Eliminate the character
+			character:BreakJoints()  -- Kills the player
+		end
+	end
+})
+
+-- Button to escape from freeze
+EscapeTab:AddButton({
+	Name = "Escape from Freeze",
+	Callback = function()
+		local player = game.Players.LocalPlayer
+		local character = player.Character or player.CharacterAdded:Wait()
+		if character then
+			-- Eliminate the character
+			character:BreakJoints()  -- Kills the player
+		end
+	end
+})
+
+-- Button to escape from glitch (oof the player)
+EscapeTab:AddButton({
+	Name = "Escape from Glitch",
+	Callback = function()
+		local player = game.Players.LocalPlayer
+		local character = player.Character or player.CharacterAdded:Wait()
+		if character then
+			-- Eliminate the character
+			character:BreakJoints()  -- Kills the player
+		end
+	end
+})
+
+-- Add Premium section
+local PremiumTab = Window:MakeTab({
+	Name = "Premium",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+-- Label for premium unlock
+PremiumTab:AddLabel("Unlock Premium to chat with Voor AI!")
+
+-- Create "Enter Key" button to show GUI
+PremiumTab:AddButton({
+	Name = "Enter Key",
+	Callback = function()
+		-- Create a new GUI for key entry
+		local keyEntryGui = Instance.new("ScreenGui", game.CoreGui)
+		local frame = Instance.new("Frame", keyEntryGui)
+		frame.Size = UDim2.new(0.4, 0, 0.2, 0)
+		frame.Position = UDim2.new(0.3, 0, 0.4, 0)
+		frame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+
+		local label = Instance.new("TextLabel", frame)
+		label.Size = UDim2.new(1, 0, 0.5, 0)
+		label.Text = "Enter Key"
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.BackgroundTransparency = 1
+
+		local input = Instance.new("TextBox", frame)
+		input.Size = UDim2.new(0.8, 0, 0.3, 0)
+		input.Position = UDim2.new(0.1, 0, 0.5, 0)
+		input.Text = ""
+		input.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+		input.TextColor3 = Color3.new(1, 1, 1)
+
+		local submitButton = Instance.new("TextButton", frame)
+		submitButton.Size = UDim2.new(0.5, 0, 0.3, 0)
+		submitButton.Position = UDim2.new(0.25, 0, 0.8, 0)
+		submitButton.Text = "Submit"
+		submitButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+		submitButton.TextColor3 = Color3.new(1, 1, 1)
+
+		-- Input for premium key
+		local premiumKeyEntered = false
+		local premiumKey = "VOORISDABEST"
+
+		submitButton.MouseButton1Click:Connect(function()
+			if input.Text == premiumKey then
+				premiumKeyEntered = true
+				local message = "Premium unlocked! Enjoy the features."
+				game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+
+				-- Add the Premium Coming Soon button
+				PremiumTab:AddButton({
+					Name = "Premium Coming Soon",
+					Callback = function()
+						local message = "Premium features are on the way!"
+						game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+					end
+				})
+
+				keyEntryGui:Destroy()  -- Close the key entry GUI
+			else
+				local message = "Invalid key. Please try again."
+				game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+			end
+		end)
+	end
+})
